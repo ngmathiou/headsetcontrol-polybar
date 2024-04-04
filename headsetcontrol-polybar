@@ -45,28 +45,26 @@ get_battery() {
 }
 
 get_status() {
-	battery="$($HEADSETCONTROL $OPTION_BATTERY $OPTION_SILENT 2> /dev/null)"
-    if [ -n "$battery" ]; then
-        # echo 'connected'
-        echo ''
-        #return 0
-    else
+	status="$($HEADSETCONTROL $OPTION_BATTERY $OPTION_SILENT | grep DEVICE_0_BATTERY_STATUS | awk -F= '{print $2}' | tr -d '"' 2> /dev/null)"
+    if [ "$status" == "BATTERY_UNAVAILABLE" ]; then
         # echo 'disconnected'
         echo 'ﳌ'
         #return 1
+    else
+        # echo 'connected'
+        echo ''
+        #return 0
     fi
 }
 
 get_status_message() {
-	battery="$($HEADSETCONTROL $OPTION_BATTERY $OPTION_SILENT 2> /dev/null)"
-    if [ -n "$battery" ]; then
-        echo 'connected'
-        #echo ''
-        #return 0
-    else
+	status="$($HEADSETCONTROL $OPTION_BATTERY $OPTION_SILENT | grep DEVICE_0_BATTERY_STATUS | awk -F= '{print $2}' | tr -d '"' 2> /dev/null)"
+    if [ "$status" == "BATTERY_UNAVAILABLE" ]; then
         echo 'disconnected'
-        #echo 'ﳌ'
-        #return 1
+    elif [ "$status" == "BATTERY_CHARGING" ]; then
+        echo 'charging'
+    else
+        echo 'connected'
     fi
 }
 
@@ -92,12 +90,10 @@ case "$1" in
         status="$(get_status_message)"
         if [[ "$status" == *"disconnected"* ]]; then
             echo "$(get_status) ${DEVICE}: (powered off)"
+        elif [[ "$status" == *"charging"* ]]; then
+            echo "$(get_status) $DEVICE: Charging"
         else
-            if [[ "$(get_battery)" = -1 ]]; then
-                echo "$(get_status) $DEVICE: Charging"
-            else
-                echo "$(get_status) $DEVICE: $(get_battery)%"
-            fi
+            echo "$(get_status) $DEVICE: $(get_battery)%"
         fi
         ;;
 esac
